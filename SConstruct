@@ -6,9 +6,9 @@ def switcheroo(a,b):
             return x
     return ret
 
-if 0:
+if 1:
     env = Environment(
-        DFLAGS = ['-Isrc'],
+        DFLAGS = ['-Isrc', '-g'],
         PREFERRED_D_COMPILER = 'gdc'
         #tools  = ['gdc']
         )  #, DC = 'gdc' )

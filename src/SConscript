@@ -6,7 +6,7 @@ util    = env.Object( 'locke/util.d')
 padded  = env.Object( 'locke/padded.d')
 
 circularArray     = env.Object( 'locke/circularArray.d'    )
-oneToOneShmQueue  = env.Object( 'locke/oneToOneShmQueue.d' )
+#oneToOneShmQueue  = env.Object( 'locke/oneToOneShmQueue.d' )
 oneToManyShmQueue = env.Object( 'locke/oneToManyShmQueue.d')
 timer             = env.Object( 'locke/rateTimer.d'        )
 
@@ -17,8 +17,8 @@ oneToOneCommon = env.Object( 'locke/oneToOneCommon.d')
 
 writerCommon = env.Object( 'locke/writerCommon.d')
 
-env.Program('bin/oneToOneWriter', ['locke/oneToOneWriter.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer, writerCommon])
-env.Program('bin/oneToOneReader', ['locke/oneToOneReader.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer , writerCommon])
+#env.Program('bin/oneToOneWriter', ['locke/oneToOneWriter.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer, writerCommon])
+#env.Program('bin/oneToOneReader', ['locke/oneToOneReader.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer , writerCommon])
 
 env.Program('bin/oneToManyWriter', ['locke/oneToManyWriter.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer, writerCommon])
 env.Program('bin/oneToManyReader1', ['locke/oneToManyReader1.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer, writerCommon])

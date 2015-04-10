@@ -9,8 +9,7 @@ import locke.writerCommon : readFrom;
 import locke.oneToOneCommon;
 
 void main() {
-  alias OneToManyReader!(Payload, size, 4, 1) ReaderType;
-  auto reader = ReaderType("%s.dat".format(  oneToManyPrefix ), 
-									"%s.meta".format( oneToManyPrefix ));
+  alias OneToManyReader!(Payload, 4, size, 1) ReaderType;
+  auto reader = ReaderType("%s.dat".format(  oneToManyPrefix ) );
   readFrom!ReaderType(reader);
 };

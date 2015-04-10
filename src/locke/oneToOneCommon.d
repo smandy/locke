@@ -2,7 +2,7 @@
 enum prefix          = "/dev/shm/locke/o2o";
 enum oneToManyPrefix = "/dev/shm/locke/o2m";
 
-struct Memento {
+shared struct Memento {
   long id;
   byte[248] pad;
 };

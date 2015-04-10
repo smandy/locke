@@ -10,27 +10,50 @@ import std.exception;
 import std.algorithm : min;
 import core.thread;
 
-struct Header(int N) {
+shared struct Header(T, int Readers, int Capacity) {
   Padded!long tail;
-  Padded!long[N] heads;
+  Padded!long[Readers] heads;
 };
 
-static assert(Header!1.sizeof==256); // (* 3 128 ) 384
-static assert(Header!2.sizeof==384);
+mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (IDX<=Readers) {
 
-mixin template OneToManyCommon(T, int N, int IDX = 1) if (IDX<=N) {
-  shared Header!N *header;
+  alias Header!(T, Readers, Capacity) HeaderType;
 
-  enum uint MASK = capacity - 1;
-  Mmapper!T mm;
-  int indexOf(long n) {
+  enum size = HeaderType.sizeof + Capacity * T.sizeof;
+  HeaderType* header;
+  T*          data;
+
+  pragma(msg, typeof( data[0]));
+
+  private void initFile( string fn ) {
+	 writefln("Size is %s", size);
+	 if (!fn.exists()) {
+		makeFileOfSize( fn, size);
+	 };
+	 auto f = File(fn, "a+");
+	 void* ptr =  mmap64(null, size, PROT_READ | PROT_WRITE, MAP_SHARED, f.fileno(), 0 );
+	 writefln("Ptr is %s", ptr);
+
+	 header = cast(HeaderType*) ptr;
+	 data   = cast(T*)         (ptr + Header.sizeof);
+
+	 writefln("Header is %s", &header);
+	 writefln("Data is %s", &data);
+
+  };
+
+  enum uint MASK = Capacity - 1;
+
+  pure static int indexOf(long n) {
     return cast(int)(n & MASK);
   };
-  long currentPos;
-  ref T current() {
-    return mm[indexOf(currentPos)];
-  };
 
+  long currentPos;
+
+  ref T current()  {
+	 pragma(msg, typeof(data[indexOf(currentPos)]) );
+	 return data[indexOf(currentPos)];
+  };
 
   long getTail() {
     //writefln("GetTail");
@@ -46,31 +69,29 @@ mixin template OneToManyCommon(T, int N, int IDX = 1) if (IDX<=N) {
   };
 
   long getHead() {
-    return getMin!(N-1)( nthHead!N );
+    return getMin!(Readers-1)( nthHead!Readers );
   };
 
-  private long nthHead(int X)() if (X>=1 && X<=N) {     
+  private long nthHead(int X)() if (X>=1 && X<=Readers) {     
     return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
-  };
+  }
 };
 
-struct OneToManyWriter(T, int capacity, int N) if (isPow2(capacity)) {
-  mixin OneToManyCommon!(T,N);
+struct OneToManyWriter(T, int Readers, int Capacity) if (isPow2(Capacity)) {
+  mixin OneToManyCommon!(T,Readers, Capacity);
 
   long cacheHead;
 
-  this( string fn, string headerFile ) {
-    this.mm = Mmapper!T(fn, capacity, PROT_READ | PROT_WRITE);
-    this.header = MmapOne!(shared Header!N)(headerFile, PROT_READ | PROT_WRITE).instance;
-    currentPos = getTail(); 
-    cacheHead  = getHead();
-    writefln("Tail is %s cacheHead is %s", currentPos, cacheHead);
+
+  this(string fn) {
+	 initFile(fn);
+	 cacheHead = getHead();
   };
 
   bool full() {
-    if ( currentPos - cacheHead < capacity) return false;
+    if ( currentPos - cacheHead < Capacity) return false;
     cacheHead = getHead();
-    return (currentPos - cacheHead == capacity);
+    return (currentPos - cacheHead == Capacity);
   };
 
   void enqueue() {
@@ -85,14 +106,15 @@ struct OneToManyWriter(T, int capacity, int N) if (isPow2(capacity)) {
   };
 };
 
-struct OneToManyReader(T, int capacity, int N, int index) if (isPow2(capacity)) {
-  mixin OneToManyCommon!(T,N,index);
+struct OneToManyReader(T, int Readers, int Capacity, int index) if (isPow2(Capacity)) {
+  mixin OneToManyCommon!(T, Readers, Capacity);
 
   long cacheTail;
 
-  this( string fn, string headerFile ) {
-    this.mm = Mmapper!T(fn, capacity, PROT_READ | PROT_WRITE);
-    this.header = MmapOne!(shared Header!N)(headerFile, PROT_READ | PROT_WRITE).instance;
+  this( string fn ) {
+    //this.rb = MmapOne!(shared Header!(T,Readers, Capacity))(fn, PROT_READ | PROT_WRITE).instance;
+
+	 initFile(fn);
     currentPos = getHead();
     cacheTail  = getTail();
     writefln("Head %s cacheTail is %s", currentPos, cacheTail);

@@ -16,7 +16,6 @@ shared struct Header(T, int Readers, int Capacity) {
 };
 
 mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (IDX<=Readers) {
-
   alias Header!(T, Readers, Capacity) HeaderType;
 
   enum size = HeaderType.sizeof + Capacity * T.sizeof;
@@ -35,11 +34,11 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
 	 writefln("Ptr is %s", ptr);
 
 	 header = cast(HeaderType*) ptr;
-	 data   = cast(T*)         (ptr + Header.sizeof);
+	 data   = cast(T*)         (ptr + HeaderType.sizeof);
+	 writefln("Size of header is %s", HeaderType.sizeof);
 
-	 writefln("Header is %s", &header);
-	 writefln("Data is %s", &data);
-
+	 writefln("Header is %s", header);
+	 writefln("Data is %s"  , data);
   };
 
   enum uint MASK = Capacity - 1;
@@ -57,7 +56,8 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
 
   long getTail() {
     //writefln("GetTail");
-    return atomicLoad!(MemoryOrder.raw)( header.tail.value);
+    //return atomicLoad!(MemoryOrder.raw)( header.tail.value);
+	 return header.tail.value;
   };
 
   private long getMin( int X )( long prev ) {
@@ -73,7 +73,9 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
   };
 
   private long nthHead(int X)() if (X>=1 && X<=Readers) {     
-    return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
+
+	 return header.heads[X-1].value;
+    //return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
   }
 };
 
@@ -81,7 +83,6 @@ struct OneToManyWriter(T, int Readers, int Capacity) if (isPow2(Capacity)) {
   mixin OneToManyCommon!(T,Readers, Capacity);
 
   long cacheHead;
-
 
   this(string fn) {
 	 initFile(fn);
@@ -102,7 +103,8 @@ struct OneToManyWriter(T, int Readers, int Capacity) if (isPow2(Capacity)) {
         enforce(currentPos - cacheHead >= capacity, "Queue full");
       };
     }
-    atomicStore!(MemoryOrder.raw)( header.tail.value, ++currentPos);
+    //atomicStore!(MemoryOrder.raw)( header.tail.value, ++currentPos);
+	 header.tail.value = ++currentPos;
   };
 };
 
@@ -132,7 +134,11 @@ struct OneToManyReader(T, int Readers, int Capacity, int index) if (isPow2(Capac
       enforce(avail > 0, "No head to advance beyond!");
     }
 	 currentPos += n;
-    atomicStore!(MemoryOrder.raw)( header.heads[index-1].value, currentPos);
+    
+  };
+
+  void commitConsumed() {
+	 atomicStore!(MemoryOrder.raw)( header.heads[index-1].value, currentPos);
   };
 };
 

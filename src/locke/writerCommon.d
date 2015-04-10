@@ -6,11 +6,23 @@ import std.exception;
 import std.string;
 import core.atomic;
 
+
+  // while(true) {
+  // 	 while(writer.full) {
+  // 	 };
+  // 	 writer.current.id = idx++;
+  // 	 writer.enqueue;
+  // 	 if ( idx % ((2 << 20) -1) == 0) {
+  // 		writefln("%s ...", idx);
+  // 	 };	 
+  // };
+
+
 void writeTo(T)(T writer) {
   long idx = 0;
   while(true) {
-	 ///writefln("Reloaded %s", atomicLoad!(MemoryOrder.acq)(writer.current.id));
-
+	 while (writer.full) {};
+	 writer.current.id = ++idx;
 	 writer.enqueue;
 	 if ( idx % ((2 << 20 ) -1) == 0) {
 		writefln("%s ...", idx);
@@ -31,23 +43,21 @@ void readFrom(T)(T reader) {
 	 int x = cacheAvail;
 	 while(x>0) {
 		++idx;
-		expected += idx;
-		//const v = reader.current.id;
-		// pragma(msg, "foo");
-		// pragma(msg, typeof( reader.current.id));
-		// pragma(msg, "boo");
-		//const v = atomicLoad!(MemoryOrder.raw)( reader.current.id);
-		auto v = atomicLoad!(MemoryOrder.seq)(reader.current.id);
+		//auto v = atomicLoad!(MemoryOrder.raw)(reader.current.id);
+		immutable v = reader.current.id;
 		tot += v;
-		writefln("%s: %s %s", idx, tot, expected);
+
+		expected += idx;
 		enforce(tot==expected, "%s expected %s".format( tot, expected));
+
 		if ( idx % MASK == 0) {
 		  writefln("rate = %s/sec %s ...%s", 
 					  timer.rateForTicks(idx), 
 					  idx, tot);
 		};
+		reader.advance(1);
 		--x;
 	 }
-	 reader.advance(cacheAvail);
+	 reader.commitConsumed();
   };
 };

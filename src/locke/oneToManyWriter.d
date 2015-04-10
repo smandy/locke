@@ -8,7 +8,7 @@ import locke.writerCommon;
 import core.thread;
 
 void main() {
-  alias OneToManyWriter!(Payload, 4, size) WriterType;
+  alias OneToManyWriter!(Payload, 1, size) WriterType;
   auto writer = WriterType("%s.dat".format(oneToManyPrefix) );
   writeTo!WriterType(writer);
 };

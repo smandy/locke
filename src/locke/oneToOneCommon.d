@@ -8,4 +8,4 @@ shared struct Memento {
 };
 
 alias Payload = Memento;
-const size = 2 << 16;
+const size = 2 << 8;

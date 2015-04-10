@@ -36,7 +36,6 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
 	 header = cast(HeaderType*) ptr;
 	 data   = cast(T*)         (ptr + HeaderType.sizeof);
 	 writefln("Size of header is %s", HeaderType.sizeof);
-
 	 writefln("Header is %s", header);
 	 writefln("Data is %s"  , data);
   };
@@ -55,9 +54,7 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
   };
 
   long getTail() {
-    //writefln("GetTail");
-    //return atomicLoad!(MemoryOrder.raw)( header.tail.value);
-	 return header.tail.value;
+	 return atomicLoad!(MemoryOrder.raw)( header.tail.value);
   };
 
   private long getMin( int X )( long prev ) {
@@ -73,9 +70,7 @@ mixin template OneToManyCommon(T, int Readers, int Capacity, int IDX = 1) if (ID
   };
 
   private long nthHead(int X)() if (X>=1 && X<=Readers) {     
-
-	 return header.heads[X-1].value;
-    //return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
+    return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
   }
 };
 
@@ -103,8 +98,7 @@ struct OneToManyWriter(T, int Readers, int Capacity) if (isPow2(Capacity)) {
         enforce(currentPos - cacheHead >= capacity, "Queue full");
       };
     }
-    //atomicStore!(MemoryOrder.raw)( header.tail.value, ++currentPos);
-	 header.tail.value = ++currentPos;
+    atomicStore!(MemoryOrder.raw)( header.tail.value, ++currentPos);
   };
 };
 
@@ -123,7 +117,7 @@ struct OneToManyReader(T, int Readers, int Capacity, int index) if (isPow2(Capac
   };
 
   int avail() {
-	 const firstStab = cast(int)(cacheTail - currentPos);
+	 immutable firstStab = cast(int)(cacheTail - currentPos);
     if (firstStab > 0 ) return firstStab;
     cacheTail = getTail();
     return cast(int)(cacheTail - currentPos);
@@ -134,7 +128,6 @@ struct OneToManyReader(T, int Readers, int Capacity, int index) if (isPow2(Capac
       enforce(avail > 0, "No head to advance beyond!");
     }
 	 currentPos += n;
-    
   };
 
   void commitConsumed() {

@@ -1,0 +1,10 @@
+
+
+.hg/**
+*~
+*.o
+build/**
+.sconsign.dblite
+*.orig
+*.pyc
+*#*#

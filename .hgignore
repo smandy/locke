@@ -1,0 +1,13 @@
+glob:*.o
+glob:*.a
+glob:*.pyc
+src/bin/ping
+src/bin/pong
+src/bin/hello
+glob:*~
+.sconsign.dblite
+src/bin/oneToOneReader
+src/bin/oneToOneWriter
+syntax: glob
+src/bin/**
+regexp:.*\#.*#$

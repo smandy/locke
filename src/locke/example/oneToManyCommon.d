@@ -10,9 +10,10 @@ enum manyToManyPrefix = "/dev/shm/locke/m2m";
 import std.stdio;
 
 shared struct Memento {
+  private byte[128] pad1;
   long id;
   int  writerId;
-  byte[244] pad;
+  private byte[256 - 128 - long.sizeof - int.sizeof] pad2;
 };
 
 static assert( Memento.sizeof == 256);
@@ -68,7 +69,6 @@ void writeTo(T)(T writer) {
 };
 
 void writeToMany(T)(T writer) {
-  
   //static Payload exemplar;
   //exemplar.writerId = writerId;
   long idx = 0;
@@ -76,11 +76,16 @@ void writeToMany(T)(T writer) {
   auto timer = RateTimer(0);
   while(idx < maxIters) {
 	 while (writer.full) {};
-	 //atomicOp!"+="(exemplar.id, 1);
-	 Payload exemplar;
-	 exemplar.id = idx;
-	 exemplar.writerId = writerId;
-	 writer.offer(exemplar);
+	 auto myObj = writer.reserve();
+	 atomicStore(myObj.id      , idx);
+	 atomicStore(myObj.writerId, writerId);
+
+	 myObj.id = idx;
+	 myObj.writerId = writerId;
+	 //atomicStore(myObj.id      , idx);
+	 //atomicStore(myObj.writerId, writerId);
+
+	 writer.commit();
 	 if ( (++idx & MASK) == 0 ) {
 		writefln("rate = %s/sec ...%s vs %s", timer.rateForTicks(idx), idx, maxIters);
 	 };
@@ -95,10 +100,7 @@ void readFrom(T)(T reader) {
   long expected = 0;
   int[] buckets = new int[numIds];
   while(idx < maxIters) {
-	 //int x = reader.avail;
-	 //writefln("Avail %s", x);
-	 while ( reader.avail()==0) {};
-
+	 while ( reader.avail()==0 ) {};
 	 ++idx;
 	 //writefln("idx %s", idx);
 	 immutable v = atomicLoad!(MemoryOrder.seq)(reader.current.id);

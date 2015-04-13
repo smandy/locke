@@ -15,7 +15,7 @@ if 0:
     s = switcheroo('dmd','gdc')
 else:
     env = Environment(
-        DFLAGS = ['-Isrc', '-inline','-O', '-vgc']
+        DFLAGS = ['-Isrc', '-inline','-vgc']
         )
 
 print "Preferred ", env.get('PREFERRED_D_COMPILERS', ['dmd', 'gdc', 'ldc'])

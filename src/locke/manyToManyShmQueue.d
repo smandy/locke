@@ -13,7 +13,8 @@ import std.algorithm : min;
 import core.thread;
 
 shared struct Header(T, int Consumers, int Capacity) {
-  Padded!long            tail;
+  Padded!long            reserveTail;
+  Padded!long            commitTail;
   Padded!long[Consumers] heads;
 };
 
@@ -69,11 +70,11 @@ mixin template ManyToManyCommon(T,
   };
 
   long getTail() {
-	 return atomicLoad!(MemoryOrder.seq)( header.tail.value);
+	 return atomicLoad!(MemoryOrder.acq)( header.commitTail.value);
   };
 
   private long nthHead(int X)() if (X>=1 && X<=Consumers) {     
-    return atomicLoad!(MemoryOrder.seq)( header.heads[X-1].value );
+    return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
   }
 };
 
@@ -99,20 +100,27 @@ struct ManyToManyWriter(T, int Consumers, int Capacity, bool multiThreaded = fal
 	 return (cacheTail - cacheHead >= Capacity);
   };
 
-  void offer(ref T t) {
-	 immutable reservedPos = atomicOp!"+="(header.tail.value, 1) - 1;
-	 //writefln("Reserved is %s", reservedPos);
+  bool reserved = false;
+  long reservedPos = long.max;
+
+  T* reserve() {
+	 enforce(!reserved);
+	 reservedPos = atomicOp!"+="(header.reserveTail.value, 1) - 1;
 	 while ( reservedPos - cacheHead == Capacity ) {
 		cacheHead = getHead();
 	 };
-	 // pragma(msg, "Beep");
-	 // pragma(msg, typeof( data[indexOf(reservedPos)] ) );
-	 // pragma(msg, "Boop");
-	 atomicFence();
-	 data[indexOf(reservedPos)] = t;
-	 atomicFence();
-	 while ( cas( &header.tail.value, reservedPos, reservedPos + 1 ) ) {};
+	 reserved = true;
+	 return &data[indexOf(reservedPos)];
+  };
+
+  void commit() {
+	 enforce(reserved);
+	 while ( !cas( &header.commitTail.value, reservedPos, reservedPos + 1 ) ) {
+		//writefln( "%s vs %s", header.commitTail.value, reservedPos);
+	 };
 	 cacheTail = reservedPos + 1;
+	 reserved = false;
+	 reservedPos = long.max;
   };
 };
 

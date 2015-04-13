@@ -7,7 +7,6 @@ import locke.example.oneToManyCommon;
 import core.thread;
 import std.file;
 
-
 void main(string[] args) {
   parseArgs(args);
   alias ManyToManyWriter!(Payload, 1, size) WriterType;

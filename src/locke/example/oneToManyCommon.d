@@ -26,19 +26,40 @@ long maxIters = long.max;
 int  writerId = 0;
 int  numIds   = 0;
 
-void parseArgs( string[] args) {
-  getopt( args,
-			 "maxIters" , &maxIters,
-			 "writerId" , &writerId,
-			 "numIds"   , &numIds
-			 );
+
+void func(alias F)(string[] args) {
+  F( args,
+	  "maxIters" , &maxIters,
+	  "writerId" , &writerId,
+	  "numIds"   , &numIds
+	  );
+};
+
+// void printArgs(string[] args) {
+//   func!argPrinter( args);
+//};
+
+void argPrinter( T...)( T ts) {
+  static if ( ts.length > 1) {
+	 static if (ts.length % 2 != 0) {
+		argPrinter( ts[1..$] );
+	 } else {
+		writefln("%s %s", ts[0], ts[1]);
+		argPrinter( ts[2..$] );
+	 }
+  };
+};
+
+void parseArgs( string[] args ) {
+  func!argPrinter(args);
+  func!getopt(args);
 };
 
 void writeTo(T)(T writer) {
   long idx = 0;
   while(idx < maxIters) {
 	 while (writer.full) {};
-	 atomicStore!(MemoryOrder.raw)(writer.current.id, ++idx);
+	 atomicStore!(MemoryOrder.seq)(writer.current.id, ++idx);
 	 writer.enqueue;
 	 if ( (idx & MASK) == 0) {
 		writefln("%s... ", idx);
@@ -47,16 +68,18 @@ void writeTo(T)(T writer) {
 };
 
 void writeToMany(T)(T writer) {
-
-  static Payload exemplar;
-  exemplar.writerId = writerId;
+  
+  //static Payload exemplar;
+  //exemplar.writerId = writerId;
   long idx = 0;
   int[] buckets = new int[numIds];
   auto timer = RateTimer(0);
   while(idx < maxIters) {
 	 while (writer.full) {};
 	 //atomicOp!"+="(exemplar.id, 1);
+	 Payload exemplar;
 	 exemplar.id = idx;
+	 exemplar.writerId = writerId;
 	 writer.offer(exemplar);
 	 if ( (++idx & MASK) == 0 ) {
 		writefln("rate = %s/sec ...%s vs %s", timer.rateForTicks(idx), idx, maxIters);
@@ -71,25 +94,34 @@ void readFrom(T)(T reader) {
   long tot = 0;
   long expected = 0;
   int[] buckets = new int[numIds];
-
   while(idx < maxIters) {
-	 int x = reader.avail;
-	 while(x>0) {
-		++idx;
-		immutable v = atomicLoad!(MemoryOrder.raw)(reader.current.id);
-		tot += v;
-		++buckets[reader.current.writerId];
-		if ( (idx & MASK) == 0) {
-		  writefln("rate = %s/sec %s vs %s...%s %s", 
-					  timer.rateForTicks(idx), 
-					  idx, 
-					  maxIters,
-					  tot,
-					  buckets);
-		};
-		reader.advance(1);
-		--x;
+	 //int x = reader.avail;
+	 //writefln("Avail %s", x);
+	 while ( reader.avail()==0) {};
+
+	 ++idx;
+	 //writefln("idx %s", idx);
+	 immutable v = atomicLoad!(MemoryOrder.seq)(reader.current.id);
+	 tot += v;
+	 immutable writerId = atomicLoad!(MemoryOrder.seq)(reader.current.writerId);
+	 if (writerId < buckets.length) {
+		  ++buckets[writerId];
 	 }
+	 if ( (idx & MASK) == 0 ) {
+		writefln("rate = %s/sec %s vs %s...%s %s", 
+					timer.rateForTicks(idx), 
+					idx, 
+					maxIters,
+					tot,
+					buckets);
+	 };
+	 reader.advance(1);
 	 reader.commitConsumed();
-  };
+  }
+  writefln("rate = %s/sec %s vs %s...%s %s", 
+			  timer.rateForTicks(idx), 
+			  idx, 
+			  maxIters,
+			  tot,
+			  buckets);
 };

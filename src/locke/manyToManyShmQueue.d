@@ -69,11 +69,11 @@ mixin template ManyToManyCommon(T,
   };
 
   long getTail() {
-	 return atomicLoad!(MemoryOrder.raw)( header.tail.value);
+	 return atomicLoad!(MemoryOrder.seq)( header.tail.value);
   };
 
   private long nthHead(int X)() if (X>=1 && X<=Consumers) {     
-    return atomicLoad!(MemoryOrder.raw)( header.heads[X-1].value );
+    return atomicLoad!(MemoryOrder.seq)( header.heads[X-1].value );
   }
 };
 
@@ -100,14 +100,19 @@ struct ManyToManyWriter(T, int Consumers, int Capacity, bool multiThreaded = fal
   };
 
   void offer(ref T t) {
-	 immutable reservedPos = atomicOp!"+="(header.tail.value, 1);
+	 immutable reservedPos = atomicOp!"+="(header.tail.value, 1) - 1;
 	 //writefln("Reserved is %s", reservedPos);
 	 while ( reservedPos - cacheHead == Capacity ) {
 		cacheHead = getHead();
 	 };
+	 // pragma(msg, "Beep");
+	 // pragma(msg, typeof( data[indexOf(reservedPos)] ) );
+	 // pragma(msg, "Boop");
+	 atomicFence();
 	 data[indexOf(reservedPos)] = t;
-	 while ( cas( &header.tail.value, reservedPos - 1, reservedPos ) ) {};
-	 cacheTail = reservedPos;
+	 atomicFence();
+	 while ( cas( &header.tail.value, reservedPos, reservedPos + 1 ) ) {};
+	 cacheTail = reservedPos + 1;
   };
 };
 
@@ -140,7 +145,7 @@ struct ManyToManyReader(T, int Consumers, int Capacity, int index) if (isPow2(Ca
   };
 
   void commitConsumed() {
-	 atomicStore!(MemoryOrder.raw)( header.heads[index-1].value, currentPos);
+	 atomicStore!(MemoryOrder.seq)( header.heads[index-1].value, currentPos);
   };
 };
 

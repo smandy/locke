@@ -1,0 +1,16 @@
+  /home/andy/repos/locke/src/locke/example:
+  total used in directory 56 available 2558784
+  drwxrwxr-x 2 andy andy 4096 Apr 12 19:00 .
+  drwxrwxr-x 5 andy andy 4096 Apr 12 19:01 ..
+  -rw-rw-r-- 2 andy andy  358 Apr 11 17:49 manyToManyReader1.d
+  -rw-rw-r-- 1 andy andy  299 Apr 12 19:00 manyToManyWriter1.d
+  -rw-rw-r-- 1 andy andy  295 Apr 11 17:55 manyToManyWriter1.d~
+  -rw-rw-r-- 3 andy andy 1235 Apr 11 17:53 oneToManyCommon.d
+  -rw-rw-r-- 1 andy andy  193 Apr 11 08:56 oneToManyCommon.d~
+  -rw-rw-r-- 2 andy andy  358 Apr 11 17:49 oneToManyReader1.d
+  -rw-rw-r-- 2 andy andy  359 Apr 12 11:41 oneToManyReader2.d
+  -rw-rw-r-- 2 andy andy  359 Apr 11 17:54 oneToManyReader3.d
+  -rw-rw-r-- 2 andy andy  359 Apr 11 17:54 oneToManyReader4.d
+  -rw-rw-r-- 2 andy andy  295 Apr 11 17:55 oneToManyWriter.d
+  -rw-rw-r-- 1 andy andy  313 Apr 11 17:40 oneToManyWriter.d~
+  -rw-rw-r-- 1 andy andy  125 Apr 12 11:41 writerCommon.d

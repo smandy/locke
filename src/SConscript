@@ -1,30 +1,49 @@
 Import('env')
 
-
 mmapper = env.Object( 'locke/mmapper.d')
 util    = env.Object( 'locke/util.d')
 padded  = env.Object( 'locke/padded.d')
 
-circularArray     = env.Object( 'locke/circularArray.d'    )
-#oneToOneShmQueue  = env.Object( 'locke/oneToOneShmQueue.d' )
-oneToManyShmQueue = env.Object( 'locke/oneToManyShmQueue.d')
-timer             = env.Object( 'locke/rateTimer.d'        )
+circularArray         = env.Object( 'locke/circularArray.d'      )
+oneToManyShmQueue     = env.Object( 'locke/oneToManyShmQueue.d'  )
+manyToManyShmQueue    = env.Object( 'locke/manyToManyShmQueue.d' )
+rateTimer             = env.Object( 'locke/rateTimer.d'          )
+incrementAndGet       = env.Object( 'locke/incrementAndGet.d'    )
 
-env.Program('bin/ping', ['locke/ping.d', mmapper, util, padded])
-env.Program('bin/pong', ['locke/pong.d', mmapper, util, padded])
+env.Program('../bin/ping', ['locke/ping.d', mmapper, util, padded])
+env.Program('../bin/pong', ['locke/pong.d', mmapper, util, padded])
 
-oneToOneCommon = env.Object( 'locke/oneToOneCommon.d')
+oneToManyCommon = env.Object( 'locke/example/oneToManyCommon.d')
 
-writerCommon = env.Object( 'locke/writerCommon.d')
+o2mdeps = [ mmapper, padded, oneToManyShmQueue, oneToManyCommon, util, rateTimer]
 
-#env.Program('bin/oneToOneWriter', ['locke/oneToOneWriter.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer, writerCommon])
-#env.Program('bin/oneToOneReader', ['locke/oneToOneReader.d', mmapper, padded, oneToOneShmQueue, oneToOneCommon, util, timer , writerCommon])
+m2mdeps = [ mmapper,
+            padded,
+            manyToManyShmQueue,
+            oneToManyCommon,
+            util,
+            rateTimer,
+            incrementAndGet]
 
-env.Program('bin/oneToManyWriter', ['locke/oneToManyWriter.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer, writerCommon])
-env.Program('bin/oneToManyReader1', ['locke/oneToManyReader1.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer, writerCommon])
-env.Program('bin/oneToManyReader2', ['locke/oneToManyReader2.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer ,writerCommon])
-env.Program('bin/oneToManyReader3', ['locke/oneToManyReader3.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer, writerCommon])
-env.Program('bin/oneToManyReader4', ['locke/oneToManyReader4.d', mmapper, padded, oneToManyShmQueue, oneToOneCommon, util, timer ,writerCommon])
+o2mw  = env.Program('../bin/oneToManyWriter',  ['locke/example/oneToManyWriter.d']  + o2mdeps )
+o2mr1 = env.Program('../bin/oneToManyReader1', ['locke/example/oneToManyReader1.d'] + o2mdeps )
+o2mr2 = env.Program('../bin/oneToManyReader2', ['locke/example/oneToManyReader2.d'] + o2mdeps )
+o2mr3 = env.Program('../bin/oneToManyReader3', ['locke/example/oneToManyReader3.d'] + o2mdeps )
+o2mr4 = env.Program('../bin/oneToManyReader4', ['locke/example/oneToManyReader4.d'] + o2mdeps ) 
+
+
+m2mw1  = env.Program('../bin/manyToManyWriter1',  ['locke/example/manyToManyWriter1.d']  + m2mdeps )
+#m2mw2  = env.Program('../bin/manyToManyWriter2',  ['locke/example/manyToManyWriter2.d']  + m2mdeps )
+m2mr1  = env.Program('../bin/manyToManyReader1',  ['locke/example/manyToManyReader1.d'] + m2mdeps )
+#m2mr2  = env.Program('../bin/manyToManyReader2',  ['locke/example/manyToManyReader2.d'] + m2mdeps )
+
+for x in [o2mw, o2mr1, o2mr2, o2mr3, o2mr4]:
+    env.Depends(x, 'locke/oneToManyShmQueue.d')
+    env.Depends(x, 'locke/incrementAndGet.d')
+    env.Depends(x, 'locke/example/oneToManyCommon.d')
+
+env.Program('../bin/testIncrementAndGet', ['locke/test/testIncrementAndGet.d', incrementAndGet ] )
+
 
 
 

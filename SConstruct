@@ -8,25 +8,21 @@ def switcheroo(a,b):
 
 if 0:
     env = Environment(
-        DFLAGS = ['-Isrc'],
+        DFLAGS = ['-Isrc', '-vgc'],
         PREFERRED_D_COMPILER = 'gdc'
         #tools  = ['gdc']
         )  #, DC = 'gdc' )
     s = switcheroo('dmd','gdc')
 else:
     env = Environment(
-        DFLAGS = ['-Isrc', '-inline','-O']
+        DFLAGS = ['-Isrc', '-inline','-O', '-vgc']
         )
 
 print "Preferred ", env.get('PREFERRED_D_COMPILERS', ['dmd', 'gdc', 'ldc'])
 print env['TOOLS']
 
-## SConscript( 'src/SConscript',
-##             variant_dir='build/debug',
-##             exports = { 'env' : env } )
-
-SConscript( 'src/SConscript',
-            #variant_dir='build/debug',
-            exports = { 'env' : env } )
+env.VariantDir( 'build', 'src')
+env.SConscript( 'build/SConscript',
+                exports = { 'env' : env } )
 
 

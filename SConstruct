@@ -7,7 +7,8 @@ if 0:
         )  #, DC = 'gdc' )
 else:
     env = Environment(
-        DFLAGS = ['-Isrc', '-inline','-release','-vgc']
+        #DFLAGS = ['-Isrc', '-inline','-O','-release','-vgc']
+        DFLAGS = ['-Isrc', '-g']
         )
     
 print "Preferred ", env.get('PREFERRED_D_COMPILERS', ['dmd', 'gdc', 'ldc'])

@@ -11,26 +11,22 @@ import std.conv;
 import std.exception;
 import std.algorithm : min;
 import core.thread;
-
 import locke.queueCommon;
 
-shared struct Header(T, int Consumers, int Capacity) {
-  Padded!long            reserveTail;
-  Padded!long            commitTail;
+shared struct Header(T, uint Consumers, uint Capacity) {
+  Padded!long            tail;
   Padded!long[Consumers] heads;
 };
 
 mixin template ManyToManyCommon(T, 
-										  int Consumers, 
-										  int Capacity, 
-										  int IDX = 1 ) if (IDX<=Consumers) {
+										  uint Consumers, 
+										  uint Capacity, 
+										  uint IDX = 1 ) if (IDX<=Consumers) {
   alias Header!(T, Consumers, Capacity) HeaderType;
 
   mixin QueueCommon!();
 
-  HeaderType* header;
-
-  T* data;
+  long currentPos;
 
   long getHead() {
 	 long getMinHead( uint X )( long prev ) {
@@ -53,20 +49,16 @@ mixin template ManyToManyCommon(T,
 
 };
 
-struct ManyToManyWriter( T, int Consumers, int Capacity ) if (isPow2(Capacity)) {
+struct ManyToManyWriter( T, uint Consumers, uint Capacity ) if (isPow2(Capacity)) {
   mixin ManyToManyCommon!(T, Consumers, Capacity);
 
   long cacheTail;
   long cacheHead;
 
   this(string fn) {
-	 writefln("Calling initfile");
 	 initFile(fn);
-	 writefln("Getting head");
 	 cacheHead = getHead();
-	 writefln("head %s", cacheHead);
 	 cacheTail = getTail();
-	 writefln( "tail %s", cacheTail);
   };
 
   bool full() {
@@ -92,34 +84,37 @@ struct ManyToManyWriter( T, int Consumers, int Capacity ) if (isPow2(Capacity)) 
 
   void commit() {
 	 enforce(reserved);
-	 while ( !cas( &header.commitTail.value, reservedPos, reservedPos + 1 ) ) {};
+	 while ( !cas( &header.commitTail.value, reservedPos, reservedPos + 1 ) ) {
+		//writefln( "%s vs %s", header.commitTail.value, reservedPos);
+	 };
 	 cacheTail = reservedPos + 1;
-
 	 reserved = false;
 	 reservedPos = long.max;
   };
 };
 
-struct ManyToManyReader(T, int Consumers, int Capacity, int index) if (isPow2(Capacity)) {
+struct ManyToManyReader(T, uint Consumers, uint Capacity, uint index) if (isPow2(Capacity)) {
   mixin ManyToManyCommon!(T, Consumers, Capacity);
 
   long cacheTail;
 
   this( string fn ) {
+    //this.rb = MmapOne!(shared Header!(T,Consumers, Capacity))(fn, PROT_READ | PROT_WRITE).instance;
+
 	 initFile(fn);
     currentPos = getHead();
     cacheTail  = getTail();
     writefln("Head %s cacheTail is %s", currentPos, cacheTail);
   };
 
-  int avail() {
+  uint avail() {
 	 immutable firstStab = cast(int)(cacheTail - currentPos);
     if (firstStab > 0 ) return firstStab;
     cacheTail = getTail();
     return cast(int)(cacheTail - currentPos);
   };
 
-  void advance(int n) {
+  void advance(uint n) {
     version(boundsCheck) {
       enforce(avail > 0, "No head to advance beyond!");
     }

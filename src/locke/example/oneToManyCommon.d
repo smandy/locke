@@ -12,8 +12,9 @@ import std.stdio;
 shared struct Memento {
   private byte[128] pad1;
   long id;
+  long sequenceNumber;
   int  writerId;
-  private byte[256 - 128 - long.sizeof - int.sizeof] pad2;
+  private byte[256 - 128 - 2 * long.sizeof - int.sizeof] pad2;
 };
 
 static assert( Memento.sizeof == 256);
@@ -72,12 +73,8 @@ void writeToMany(T)(T writer) {
   while(idx < maxIters) {
 	 while (writer.full) {};
 	 auto myObj = writer.reserve();
-	 // atomicStore(myObj.id      , idx);
-	 // atomicStore(myObj.writerId, writerId);
-
 	 myObj.id = idx;
 	 myObj.writerId = writerId;
-
 	 writer.commit();
 	 if ( (++idx & MASK) == 0 ) {
 		writefln("rate = %s/sec ...%s vs %s", timer.rateForTicks(idx), idx, maxIters);
@@ -92,8 +89,6 @@ void readFrom(T)(T reader) {
   long tot = 0;
   long expected = 0;
   int[] buckets = new int[numIds];
-
-  //int x = reader.avail();
 
   int x;
   while(idx < maxIters) {

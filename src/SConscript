@@ -6,7 +6,10 @@ padded  = env.Object( 'locke/padded.d')
 
 circularArray         = env.Object( 'locke/circularArray.d'      )
 oneToManyShmQueue     = env.Object( 'locke/oneToManyShmQueue.d'  )
-manyToManyShmQueue    = env.Object( 'locke/manyToManyShmQueue.d' )
+
+manyToManyShmQueue         = env.Object( 'locke/manyToManyShmQueue.d' )
+invasiveManyToManyShmQueue = env.Object( 'locke/invasiveManyToManyShmQueue.d')
+
 rateTimer             = env.Object( 'locke/rateTimer.d'          )
 incrementAndGet       = env.Object( 'locke/incrementAndGet.d'    )
 
@@ -32,7 +35,7 @@ o2mr3 = env.Program('../bin/oneToManyReader3', ['locke/example/oneToManyReader3.
 o2mr4 = env.Program('../bin/oneToManyReader4', ['locke/example/oneToManyReader4.d'] + o2mdeps ) 
 
 
-m2mw1  = env.Program('../bin/manyToManyWriter1',  ['locke/example/manyToManyWriter1.d']  + m2mdeps )
+m2mw1  = env.Program('../bin/manyToManyWriter',  ['locke/example/manyToManyWriter.d']  + m2mdeps )
 #m2mw2  = env.Program('../bin/manyToManyWriter2',  ['locke/example/manyToManyWriter2.d']  + m2mdeps )
 m2mr1  = env.Program('../bin/manyToManyReader1',  ['locke/example/manyToManyReader1.d'] + m2mdeps )
 #m2mr2  = env.Program('../bin/manyToManyReader2',  ['locke/example/manyToManyReader2.d'] + m2mdeps )

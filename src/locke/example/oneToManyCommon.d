@@ -19,14 +19,13 @@ shared struct Memento {
 static assert( Memento.sizeof == 256);
 
 alias Payload = Memento;
-enum size   = 2 << 12;
-enum msgGap = 2 << 22;
+enum size   = 1 << 9;
+enum msgGap = 1 << 23;
 enum MASK   = msgGap - 1;
 
 long maxIters = long.max;
 int  writerId = 0;
 int  numIds   = 0;
-
 
 void func(alias F)(string[] args) {
   F( args,
@@ -35,10 +34,6 @@ void func(alias F)(string[] args) {
 	  "numIds"   , &numIds
 	  );
 };
-
-// void printArgs(string[] args) {
-//   func!argPrinter( args);
-//};
 
 void argPrinter( T...)( T ts) {
   static if ( ts.length > 1) {
@@ -77,13 +72,11 @@ void writeToMany(T)(T writer) {
   while(idx < maxIters) {
 	 while (writer.full) {};
 	 auto myObj = writer.reserve();
-	 atomicStore(myObj.id      , idx);
-	 atomicStore(myObj.writerId, writerId);
+	 // atomicStore(myObj.id      , idx);
+	 // atomicStore(myObj.writerId, writerId);
 
 	 myObj.id = idx;
 	 myObj.writerId = writerId;
-	 //atomicStore(myObj.id      , idx);
-	 //atomicStore(myObj.writerId, writerId);
 
 	 writer.commit();
 	 if ( (++idx & MASK) == 0 ) {
@@ -99,25 +92,33 @@ void readFrom(T)(T reader) {
   long tot = 0;
   long expected = 0;
   int[] buckets = new int[numIds];
+
+  //int x = reader.avail();
+
+  int x;
   while(idx < maxIters) {
-	 while ( reader.avail()==0 ) {};
-	 ++idx;
-	 //writefln("idx %s", idx);
-	 immutable v = atomicLoad!(MemoryOrder.seq)(reader.current.id);
-	 tot += v;
-	 immutable writerId = atomicLoad!(MemoryOrder.seq)(reader.current.writerId);
-	 if (writerId < buckets.length) {
+	 while ( (x = reader.avail()) == 0 ) {};
+	 import std.exception : enforce;
+	 enforce(x != 0);
+	 while ( x-- > 0 ) {
+		++idx;
+		//writefln("idx %s", idx);
+		immutable v = atomicLoad!(MemoryOrder.seq)(reader.current.id);
+		tot += v;
+		immutable writerId = atomicLoad!(MemoryOrder.seq)(reader.current.writerId);
+		if (writerId < buckets.length) {
 		  ++buckets[writerId];
+		}
+		if ( (idx & MASK) == 0 ) {
+		  writefln("rate = %s/sec %s vs %s...%s %s", 
+					  timer.rateForTicks(idx), 
+					  idx, 
+					  maxIters,
+					  tot,
+					  buckets);
+		};
+		reader.advance(1);
 	 }
-	 if ( (idx & MASK) == 0 ) {
-		writefln("rate = %s/sec %s vs %s...%s %s", 
-					timer.rateForTicks(idx), 
-					idx, 
-					maxIters,
-					tot,
-					buckets);
-	 };
-	 reader.advance(1);
 	 reader.commitConsumed();
   }
   writefln("rate = %s/sec %s vs %s...%s %s", 

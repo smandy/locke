@@ -1,10 +1,3 @@
-def switcheroo(a,b):
-    def ret(x):
-        if x==a:
-            return b
-        else:
-            return x
-    return ret
 
 if 0:
     env = Environment(
@@ -12,12 +5,11 @@ if 0:
         PREFERRED_D_COMPILER = 'gdc'
         #tools  = ['gdc']
         )  #, DC = 'gdc' )
-    s = switcheroo('dmd','gdc')
 else:
     env = Environment(
-        DFLAGS = ['-Isrc', '-inline','-vgc']
+        DFLAGS = ['-Isrc', '-inline','-release','-vgc']
         )
-
+    
 print "Preferred ", env.get('PREFERRED_D_COMPILERS', ['dmd', 'gdc', 'ldc'])
 print env['TOOLS']
 

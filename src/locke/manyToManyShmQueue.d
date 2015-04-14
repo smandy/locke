@@ -35,6 +35,7 @@ mixin template ManyToManyCommon(T,
 	 };
 	 auto f = File(fn, "a+");
 	 void* ptr =  mmap64(null, size, PROT_READ | PROT_WRITE, MAP_SHARED, f.fileno(), 0 );
+	 enforce( ptr, "Failed to mmap");
 	 writefln("Ptr is %s", ptr);
 
 	 header = cast(HeaderType*) ptr;
@@ -57,15 +58,18 @@ mixin template ManyToManyCommon(T,
 	 return data[indexOf(currentPos)];
   };
 
-  private long getMinHead( int X )( long prev ) {
-    static if ( X == 0 ) {
-      return prev;
-    } else {
-      return getMinHead!(X-1)( min( prev, nthHead!X) );
-    };
-  };
-
   long getHead() {
+	 long getMinHead( int X )( long prev ) {
+		static if ( X == 0 ) {
+		  return prev;
+		} else {
+		  return getMinHead!(X-1)( min( prev, nthHead!X) );
+		};
+	 };
+	 
+	 long nthHead(int X)() if (X>=1 && X<=Consumers) {     
+		return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
+	 }
     return getMinHead!(Consumers-1)( nthHead!Consumers );
   };
 
@@ -73,16 +77,11 @@ mixin template ManyToManyCommon(T,
 	 return atomicLoad!(MemoryOrder.acq)( header.commitTail.value);
   };
 
-  private long nthHead(int X)() if (X>=1 && X<=Consumers) {     
-    return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
-  }
 };
 
-struct ManyToManyWriter(T, int Consumers, int Capacity, bool multiThreaded = false) if (isPow2(Capacity)) {
+struct ManyToManyWriter( T, int Consumers, int Capacity ) if (isPow2(Capacity)) {
   mixin ManyToManyCommon!(T, Consumers, Capacity);
 
-  // CacheTail is threadlocal. This will come out in the wash.
-  // different threads have different cacheTails but this is okay
   long cacheTail;
   long cacheHead;
 

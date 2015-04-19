@@ -1,11 +1,8 @@
 module locke.queueCommon;
 
 mixin template QueueCommon() {
-
   enum uint MASK = Capacity - 1;
   enum size = HeaderType.sizeof + Capacity * T.sizeof;
-  HeaderType* header;
-  T* data;
 
   final private void initFile( string fn ) {
 	 writefln("Size is %s", size);
@@ -34,5 +31,4 @@ mixin template QueueCommon() {
   final ref T current()  {
 	 return data[indexOf(currentPos)];
   };
-
 }

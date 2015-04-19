@@ -12,45 +12,38 @@ import std.exception;
 import std.algorithm : min;
 import core.thread;
 import locke.queueCommon;
+import locke.multipleHeads;
 
 shared struct Header(T, uint Consumers, uint Capacity) {
-  Padded!long            tail;
-  Padded!long[Consumers] heads;
+  Padded!ulong            tail;
+  Padded!ulong[Consumers] heads;
 };
 
-mixin template ManyToManyCommon(T, 
+mixin template InvasiveManyToManyCommon(T, 
 										  uint Consumers, 
 										  uint Capacity, 
-										  uint IDX = 1 ) if (IDX<=Consumers) {
+													 uint IDX = 1 ) if (IDX<=Consumers) {
   alias Header!(T, Consumers, Capacity) HeaderType;
 
   mixin QueueCommon!();
+  HeaderType* header;
+  T* data;
 
   long currentPos;
 
-  long getHead() {
-	 long getMinHead( uint X )( long prev ) {
-		static if ( X == 0 ) {
-		  return prev;
-		} else {
-		  return getMinHead!(X-1)( min( prev, nthHead!X) );
-		};
-	 };
-	 
-	 long nthHead(uint X)() if (X>=1 && X<=Consumers) {     
-		return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
-	 }
-    return getMinHead!(Consumers-1)( nthHead!Consumers );
-  };
-
   long getTail() {
-	 return atomicLoad!(MemoryOrder.acq)( header.commitTail.value);
+	 return atomicLoad!(MemoryOrder.acq)( header.tail.value);
   };
 
+  // getHead() impl that loops over consumers
+  mixin MultipleHeads;
 };
 
-struct ManyToManyWriter( T, uint Consumers, uint Capacity ) if (isPow2(Capacity)) {
-  mixin ManyToManyCommon!(T, Consumers, Capacity);
+struct InvasiveManyToManyWriter( T, uint Consumers, uint Capacity ) if (isPow2(Capacity)) {
+
+  pragma(msg, typeof(T.sequenceNumber));
+
+  mixin InvasiveManyToManyCommon!(T, Consumers, Capacity);
 
   long cacheTail;
   long cacheHead;
@@ -65,36 +58,20 @@ struct ManyToManyWriter( T, uint Consumers, uint Capacity ) if (isPow2(Capacity)
 	 if ( cacheTail - cacheHead < Capacity ) return false;
 	 cacheTail = getTail();
 	 cacheHead = getHead();
-	 //enforce( cacheTail - cacheHead <= Capacity, "Overfull queue");
 	 return (cacheTail - cacheHead >= Capacity);
   };
 
-  bool reserved = false;
-  long reservedPos = long.max;
-
-  T* reserve() {
-	 enforce(!reserved);
-	 reservedPos = atomicOp!"+="(header.reserveTail.value, 1) - 1;
-	 while ( reservedPos - cacheHead == Capacity ) {
-		cacheHead = getHead();
-	 };
-	 reserved = true;
-	 return &data[indexOf(reservedPos)];
-  };
-
-  void commit() {
-	 enforce(reserved);
-	 while ( !cas( &header.commitTail.value, reservedPos, reservedPos + 1 ) ) {
-		//writefln( "%s vs %s", header.commitTail.value, reservedPos);
-	 };
+  void offer(U)( ref U u) if ( U.sizeof == T.sizeof ) {
+	 auto reservedPos = atomicOp!"+="(header.tail.value, 1) - 1;
+	 pragma(msg, typeof(reservedPos));
+	 data[indexOf(reservedPos)] = cast(T) u;
+	 atomicStore!(MemoryOrder.rel)(u.sequenceNumber, reservedPos + 1 );
 	 cacheTail = reservedPos + 1;
-	 reserved = false;
-	 reservedPos = long.max;
   };
 };
 
-struct ManyToManyReader(T, uint Consumers, uint Capacity, uint index) if (isPow2(Capacity)) {
-  mixin ManyToManyCommon!(T, Consumers, Capacity);
+struct InvasiveManyToManyReader(T, uint Consumers, uint Capacity, uint index) if (isPow2(Capacity)) {
+  mixin InvasiveManyToManyCommon!(T, Consumers, Capacity);
 
   long cacheTail;
 

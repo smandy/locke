@@ -7,13 +7,15 @@ import std.getopt;
 enum oneToManyPrefix  = "/dev/shm/locke/o2m";
 enum manyToManyPrefix = "/dev/shm/locke/m2m";
 
+enum invasiveManyToManyPrefix = "/dev/shm/locke/i2m";
+
 import std.stdio;
 
 shared struct Memento {
   private byte[128] pad1;
   long id;
-  long sequenceNumber;
-  int  writerId;
+  ulong sequenceNumber;
+  int   writerId;
   private byte[256 - 128 - 2 * long.sizeof - int.sizeof] pad2;
 };
 
@@ -81,6 +83,28 @@ void writeToMany(T)(T writer) {
 	 };
   };	 
 };
+
+
+void writeToManyInvasive(T)(T writer) {
+  //static Payload exemplar;
+  //exemplar.writerId = writerId;
+  long idx = 0;
+  int[] buckets = new int[numIds];
+  auto timer = RateTimer(0);
+
+  Payload myObj;
+
+  while(idx < maxIters) {
+	 while (writer.full) {};
+	 myObj.id = idx;
+	 myObj.writerId = writerId;
+	 writer.offer(myObj);
+	 if ( (++idx & MASK) == 0 ) {
+		writefln("rate = %s/sec ...%s vs %s", timer.rateForTicks(idx), idx, maxIters);
+	 };
+  };	 
+};
+
 
 void readFrom(T)(T reader) {
   long idx = 0;

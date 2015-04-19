@@ -28,6 +28,15 @@ m2mdeps = [ mmapper,
             rateTimer,
             incrementAndGet]
 
+im2mdeps = [ mmapper,
+            padded,
+            invasiveManyToManyShmQueue,
+            oneToManyCommon,
+            util,
+            rateTimer,
+            incrementAndGet]
+
+
 o2mw  = env.Program('../bin/oneToManyWriter',  ['locke/example/oneToManyWriter.d']  + o2mdeps )
 o2mr1 = env.Program('../bin/oneToManyReader1', ['locke/example/oneToManyReader1.d'] + o2mdeps )
 o2mr2 = env.Program('../bin/oneToManyReader2', ['locke/example/oneToManyReader2.d'] + o2mdeps )
@@ -36,9 +45,11 @@ o2mr4 = env.Program('../bin/oneToManyReader4', ['locke/example/oneToManyReader4.
 
 
 m2mw1  = env.Program('../bin/manyToManyWriter',  ['locke/example/manyToManyWriter.d']  + m2mdeps )
-#m2mw2  = env.Program('../bin/manyToManyWriter2',  ['locke/example/manyToManyWriter2.d']  + m2mdeps )
 m2mr1  = env.Program('../bin/manyToManyReader1',  ['locke/example/manyToManyReader1.d'] + m2mdeps )
-#m2mr2  = env.Program('../bin/manyToManyReader2',  ['locke/example/manyToManyReader2.d'] + m2mdeps )
+
+im2mw1  = env.Program('../bin/invasiveWriter',  ['locke/example/invasiveWriter.d']  + im2mdeps )
+im2mr1  = env.Program('../bin/invasiveReader',  ['locke/example/invasiveReader.d'] + im2mdeps )
+
 
 for x in [o2mw, o2mr1, o2mr2, o2mr3, o2mr4]:
     env.Depends(x, 'locke/oneToManyShmQueue.d')

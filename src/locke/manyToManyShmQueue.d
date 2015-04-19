@@ -13,6 +13,7 @@ import std.algorithm : min;
 import core.thread;
 
 import locke.queueCommon;
+import locke.multipleHeads;
 
 shared struct Header(T, int Consumers, int Capacity) {
   Padded!long            reserveTail;
@@ -29,25 +30,11 @@ mixin template ManyToManyCommon(T,
   mixin QueueCommon!();
 
   HeaderType* header;
-
   T* data;
 
-  long getHead() {
-	 long getMinHead( uint X )( long prev ) {
-		static if ( X == 0 ) {
-		  return prev;
-		} else {
-		  return getMinHead!(X-1)( min( prev, nthHead!X) );
-		};
-	 };
-	 
-	 long nthHead(uint X)() if (X>=1 && X<=Consumers) {     
-		return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
-	 }
-    return getMinHead!(Consumers-1)( nthHead!Consumers );
-  };
+  mixin MultipleHeads;
 
-  long getTail() {
+  final long getTail() {
 	 return atomicLoad!(MemoryOrder.acq)( header.commitTail.value);
   };
 

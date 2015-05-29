@@ -46,6 +46,8 @@ o2mr4 = env.Program('../bin/oneToManyReader4', ['locke/example/oneToManyReader4.
 
 m2mw1  = env.Program('../bin/manyToManyWriter',  ['locke/example/manyToManyWriter.d']  + m2mdeps )
 m2mr1  = env.Program('../bin/manyToManyReader1',  ['locke/example/manyToManyReader1.d'] + m2mdeps )
+m2mr1  = env.Program('../bin/manyToManyReader2',  ['locke/example/manyToManyReader2.d'] + m2mdeps )
+
 
 im2mw1  = env.Program('../bin/invasiveWriter',  ['locke/example/invasiveWriter.d']  + im2mdeps )
 im2mr1  = env.Program('../bin/invasiveReader',  ['locke/example/invasiveReader.d'] + im2mdeps )

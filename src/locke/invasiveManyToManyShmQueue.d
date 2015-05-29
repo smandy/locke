@@ -77,7 +77,6 @@ struct InvasiveManyToManyReader(T, uint Consumers, uint Capacity, uint index) if
 
   this( string fn ) {
     //this.rb = MmapOne!(shared Header!(T,Consumers, Capacity))(fn, PROT_READ | PROT_WRITE).instance;
-
 	 initFile(fn);
     currentPos = getHead();
     cacheTail  = getTail();
@@ -88,6 +87,10 @@ struct InvasiveManyToManyReader(T, uint Consumers, uint Capacity, uint index) if
 	 immutable firstStab = cast(int)(cacheTail - currentPos);
     if (firstStab > 0 ) return firstStab;
     cacheTail = getTail();
+
+	 uint ret = 0;
+
+
     return cast(int)(cacheTail - currentPos);
   };
 

@@ -1,5 +1,5 @@
 
-if 0:
+if 1:
     env = Environment(
         DFLAGS = ['-Isrc', '-vgc'],
         PREFERRED_D_COMPILER = 'gdc'

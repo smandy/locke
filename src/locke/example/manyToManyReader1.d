@@ -10,7 +10,7 @@ import std.datetime;
 
 void main(string[] args) {
   parseArgs(args);
-  alias ManyToManyReader!(Payload, 1, size, 1) ReaderType;
+  alias ManyToManyReader!(Payload, 2, size, 1) ReaderType;
   auto reader = ReaderType("%s.dat".format(  manyToManyPrefix ) );
   readFrom!ReaderType(reader);
 };

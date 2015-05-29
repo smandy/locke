@@ -9,7 +9,7 @@ import std.file;
 
 void main(string[] args) {
   parseArgs(args);
-  alias ManyToManyWriter!(Payload, 1, size) WriterType;
+  alias ManyToManyWriter!(Payload, 2, size) WriterType;
   auto writer = WriterType("%s.dat".format(manyToManyPrefix) );
   writefln("Begin");
   writeToMany!WriterType(writer);

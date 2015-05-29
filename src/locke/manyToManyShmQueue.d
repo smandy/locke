@@ -35,7 +35,7 @@ mixin template ManyToManyCommon(T,
   mixin MultipleHeads;
 
   final long getTail() {
-	 return atomicLoad!(MemoryOrder.acq)( header.commitTail.value);
+	 return atomicLoad!(MemoryOrder.seq)( header.commitTail.value);
   };
 
 };
@@ -81,7 +81,6 @@ struct ManyToManyWriter( T, int Consumers, int Capacity ) if (isPow2(Capacity)) 
 	 enforce(reserved);
 	 while ( !cas( &header.commitTail.value, reservedPos, reservedPos + 1 ) ) {};
 	 cacheTail = reservedPos + 1;
-
 	 reserved = false;
 	 reservedPos = long.max;
   };

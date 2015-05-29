@@ -11,7 +11,7 @@ mixin template MultipleHeads() {
 	 };
 	 
 	 long nthHead(uint X)() if (X>=1 && X<=Consumers) {     
-		return atomicLoad!(MemoryOrder.acq)( header.heads[X-1].value );
+		return atomicLoad!(MemoryOrder.seq)( header.heads[X-1].value );
 	 }
     return getMinHead!(Consumers-1)( nthHead!Consumers );
   };

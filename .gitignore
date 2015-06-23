@@ -37,3 +37,4 @@ build/**
 *.app
 
 bin/**
+/src/locke/.#util.d

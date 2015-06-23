@@ -1,3 +1,4 @@
+
 module locke.queueCommon;
 
 mixin template QueueCommon() {

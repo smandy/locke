@@ -64,8 +64,19 @@ struct ManyToManyWriter( T, int Consumers, int Capacity ) if (isPow2(Capacity)) 
 	 return (cacheTail - cacheHead >= Capacity);
   };
 
+  inline T& current() {
+    return *data[indexOf(currentPos)];
+  };
+
+  bool full() {
+    if (cacheTail - cacheHead < Capacity) return false;
+    cacheTail = getTail();
+    cacheHead = getHead();
+    return  (cacheTail - cacheHead) >= Capacity;
+  };
+
   bool reserved = false;
-  long reservedPos = long.max;
+  int64_t reservedPos = long.max;
 
   T* reserve() {
 	 enforce(!reserved);
@@ -96,6 +107,10 @@ struct ManyToManyReader(T, int Consumers, int Capacity, int index) if (isPow2(Ca
     currentPos = getHead();
     cacheTail  = getTail();
     writefln("Head %s cacheTail is %s", currentPos, cacheTail);
+  };
+
+  void advance( int n ) {
+    currentPos += n;
   };
 
   int avail() {
